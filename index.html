@@ -450,10 +450,10 @@
     let currentSeriesContext = null;
     let fallbackFormatsAttempted = [];
 
-    // Helper per ignorare il blocco CORS e HTTPS di GitHub Pages
+    // Proxy AllOrigins per aggirare i blocchi CORS/Mixed-Content di GitHub Pages
     function getApiUrl(targetUrl) {
       if (targetUrl.startsWith('http://')) {
-        return 'https://corsproxy.io/?' + encodeURIComponent(targetUrl);
+        return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(targetUrl);
       }
       return targetUrl;
     }
@@ -588,18 +588,38 @@
       const p = serverConfig.pass;
       const h = serverConfig.host;
 
-      const [liveCat, liveStr, vodCat, vodStr, serCat, serStr] = await Promise.all([
-        fetch(getApiUrl(`${h}/player_api.php?username=${u}&password=${p}&action=get_live_categories`)).then(r => r.json()).catch(() => []),
-        fetch(getApiUrl(`${h}/player_api.php?username=${u}&password=${p}&action=get_live_streams`)).then(r => r.json()).catch(() => []),
-        fetch(getApiUrl(`${h}/player_api.php?username=${u}&password=${p}&action=get_vod_categories`)).then(r => r.json()).catch(() => []),
-        fetch(getApiUrl(`${h}/player_api.php?username=${u}&password=${p}&action=get_vod_streams`)).then(r => r.json()).catch(() => []),
-        fetch(getApiUrl(`${h}/player_api.php?username=${u}&password=${p}&action=get_series_categories`)).then(r => r.json()).catch(() => []),
-        fetch(getApiUrl(`${h}/player_api.php?username=${u}&password=${p}&action=get_series`)).then(r => r.json()).catch(() => [])
-      ]);
+      const fetchSafe = async (action) => {
+        try {
+          const url = getApiUrl(`${h}/player_api.php?username=${u}&password=${p}&action=${action}`);
+          const r = await fetch(url);
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return await r.json();
+        } catch (e) {
+          console.warn(`Errore caricamento ${action}:`, e);
+          return [];
+        }
+      };
+
+      // Caricamento sequenziale per evitare il blocco del proxy
+      showLoading('Caricamento canali Live...');
+      const liveCat = await fetchSafe('get_live_categories');
+      const liveStr = await fetchSafe('get_live_streams');
+      
+      showLoading('Caricamento cataloghi Film...');
+      const vodCat = await fetchSafe('get_vod_categories');
+      const vodStr = await fetchSafe('get_vod_streams');
+      
+      showLoading('Caricamento cataloghi Serie TV...');
+      const serCat = await fetchSafe('get_series_categories');
+      const serStr = await fetchSafe('get_series');
 
       dataStore.live = { categories: Array.isArray(liveCat) ? liveCat : [], streams: Array.isArray(liveStr) ? liveStr : [] };
       dataStore.vod = { categories: Array.isArray(vodCat) ? vodCat : [], streams: Array.isArray(vodStr) ? vodStr : [] };
       dataStore.series = { categories: Array.isArray(serCat) ? serCat : [], streams: Array.isArray(serStr) ? serStr : [] };
+
+      if (dataStore.live.streams.length === 0 && dataStore.vod.streams.length === 0) {
+        alert("Il proxy pubblico non è riuscito a scaricare i dati dal server IPTV.");
+      }
     }
 
     function switchType(type, event) {
@@ -1030,12 +1050,10 @@
 
       const isHls = streamUrl.includes('.m3u8') || ext === 'm3u8' || type === 'live';
 
-      // 1. Controllo se il browser (Safari/iOS) supporta HLS nativamente
       if (isHls && video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = streamUrl;
         video.play().catch(err => console.log('Autoplay nativo bloccato:', err));
       } 
-      // 2. Altrimenti usa hls.js su Chrome, Firefox o altri browser desktop
       else if (isHls && Hls.isSupported()) {
         let hlsSource = streamUrl;
         if (streamUrl.startsWith('http://')) {
@@ -1053,7 +1071,6 @@
           }
         });
       } 
-      // 3. Riproduzione standard per MP4/MKV
       else {
         video.src = streamUrl;
         video.play().catch(err => console.log('Autoplay bloccato o formato non supportato:', err));
