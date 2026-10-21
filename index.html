@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Xtream Web Player</title>
+  <title>GL Xtream Player</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -17,13 +17,11 @@
       overflow: hidden;
     }
 
-    /* Scrollbar Personalizzata */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #141414; }
     ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #e50914; }
 
-    /* Indicatori di Caricamento (Spinner) */
     #loading-overlay {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -46,7 +44,6 @@
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     #loading-text { font-size: 14px; color: #ddd; font-weight: 500; }
 
-    /* Modal Login */
     #login-modal {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -100,7 +97,6 @@
     .login-box button:hover { background: #b80710; }
     .login-box button:disabled { background: #555; cursor: not-allowed; }
 
-    /* Modal Serie TV */
     #series-modal {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -163,7 +159,6 @@
       border-radius: 4px; cursor: pointer; font-size: 12px;
     }
 
-    /* Sidebar */
     #sidebar {
       width: 340px;
       background: #1f1f1f;
@@ -245,14 +240,12 @@
     .fav-btn.active { color: #ffc107; }
     .remove-cw-btn:hover { color: #e50914; }
 
-    /* Player e Area Principale */
     #main-content {
       flex: 1; display: flex;
       flex-direction: column; background: #000;
       overflow-y: auto; position: relative;
     }
 
-    /* Barra Superiore Mobile */
     .mobile-bar {
       display: none;
       background: #141414;
@@ -276,7 +269,6 @@
     }
     video { width: 100%; height: 100%; max-height: 70vh; }
 
-    /* Overlay Info Serie TV / Contenuto in Riproduzione */
     #now-playing-overlay {
       position: absolute; top: 15px; left: 15px;
       background: rgba(15, 15, 15, 0.88);
@@ -298,7 +290,6 @@
       text-align: center; max-width: 80%;
     }
 
-    /* Controlli Overlay Serie TV */
     #series-player-controls {
       position: absolute; bottom: 25px; right: 25px;
       display: none; gap: 10px; z-index: 30;
@@ -313,7 +304,6 @@
     }
     .series-nav-btn:hover { background: #e50914; border-color: #e50914; }
 
-    /* Sezione EPG */
     #epg-panel {
       padding: 20px; background: #181818;
       border-top: 1px solid #333; display: none;
@@ -332,7 +322,6 @@
     .epg-title { font-size: 14px; font-weight: bold; }
     .epg-desc { font-size: 12px; color: #888; margin-top: 4px; }
 
-    /* Responsività Mobile e Tablet */
     @media (max-width: 768px) {
       body { flex-direction: column; }
       .mobile-bar { display: flex; }
@@ -355,13 +344,11 @@
 </head>
 <body>
 
-  <!-- Spinner Overlay di caricamento -->
   <div id="loading-overlay">
     <div class="spinner"></div>
     <div id="loading-text">Caricamento in corso...</div>
   </div>
 
-  <!-- Modal Login -->
   <div id="login-modal">
     <div class="login-box">
       <h2>Xtream Login</h2>
@@ -376,7 +363,6 @@
     </div>
   </div>
 
-  <!-- Modal Dettaglio Serie TV -->
   <div id="series-modal">
     <div class="series-box">
       <button class="close-modal" onclick="closeSeriesModal()">&times;</button>
@@ -395,7 +381,6 @@
     </div>
   </div>
 
-  <!-- Sidebar -->
   <div id="sidebar">
     <div class="sidebar-user-bar">
       <span class="user-info" id="user-display">Non connesso</span>
@@ -415,11 +400,10 @@
     <ul id="channel-list"></ul>
   </div>
 
-  <!-- Area Video e EPG -->
   <div id="main-content">
     <div class="mobile-bar">
       <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()">☰ Canali</button>
-      <span style="font-size:13px; color:#e50914; font-weight:bold;">Xtream Web Player</span>
+      <span style="font-size:13px; color:#e50914; font-weight:bold;">GL Xtream Player</span>
     </div>
 
     <div id="player-container">
@@ -427,13 +411,11 @@
 
       <div id="player-error-msg"></div>
 
-      <!-- Banner Info Episodio Serie TV / Contenuto -->
       <div id="now-playing-overlay">
         <div id="now-playing-title"></div>
         <div id="now-playing-sub"></div>
       </div>
       
-      <!-- Controlli Navigazione Episodi -->
       <div id="series-player-controls">
         <button id="btn-prev-ep" class="series-nav-btn" onclick="playPrevEpisode()">⏮️ Ep. Precedente</button>
         <button id="btn-next-ep" class="series-nav-btn" onclick="playNextEpisode()">⏭️ Ep. Successivo</button>
@@ -450,7 +432,7 @@
 
   <script>
     let serverConfig = { host: '', user: '', pass: '' };
-    let currentType = 'live'; // 'live', 'vod', 'series'
+    let currentType = 'live'; 
     
     let dataStore = {
       live: { streams: [], categories: [] },
@@ -467,6 +449,14 @@
     let currentSeriesData = null;
     let currentSeriesContext = null;
     let fallbackFormatsAttempted = [];
+
+    // Helper per ignorare il blocco CORS e HTTPS di GitHub Pages
+    function getApiUrl(targetUrl) {
+      if (targetUrl.startsWith('http://')) {
+        return 'https://corsproxy.io/?' + encodeURIComponent(targetUrl);
+      }
+      return targetUrl;
+    }
 
     window.addEventListener('DOMContentLoaded', () => {
       const video = document.getElementById('video');
@@ -558,7 +548,7 @@
         filterChannels();
         document.getElementById('login-modal').style.display = 'none';
       } catch (err) {
-        alert('Impossibile connettersi al server. Controlla i dati o i permessi CORS.');
+        alert('Impossibile connettersi al server. Controlla i dati immessi.');
         console.error(err);
         if (isAuto) {
           document.getElementById('login-modal').style.display = 'flex';
@@ -599,12 +589,12 @@
       const h = serverConfig.host;
 
       const [liveCat, liveStr, vodCat, vodStr, serCat, serStr] = await Promise.all([
-        fetch(`${h}/player_api.php?username=${u}&password=${p}&action=get_live_categories`).then(r => r.json()).catch(() => []),
-        fetch(`${h}/player_api.php?username=${u}&password=${p}&action=get_live_streams`).then(r => r.json()).catch(() => []),
-        fetch(`${h}/player_api.php?username=${u}&password=${p}&action=get_vod_categories`).then(r => r.json()).catch(() => []),
-        fetch(`${h}/player_api.php?username=${u}&password=${p}&action=get_vod_streams`).then(r => r.json()).catch(() => []),
-        fetch(`${h}/player_api.php?username=${u}&password=${p}&action=get_series_categories`).then(r => r.json()).catch(() => []),
-        fetch(`${h}/player_api.php?username=${u}&password=${p}&action=get_series`).then(r => r.json()).catch(() => [])
+        fetch(getApiUrl(`${h}/player_api.php?username=${u}&password=${p}&action=get_live_categories`)).then(r => r.json()).catch(() => []),
+        fetch(getApiUrl(`${h}/player_api.php?username=${u}&password=${p}&action=get_live_streams`)).then(r => r.json()).catch(() => []),
+        fetch(getApiUrl(`${h}/player_api.php?username=${u}&password=${p}&action=get_vod_categories`)).then(r => r.json()).catch(() => []),
+        fetch(getApiUrl(`${h}/player_api.php?username=${u}&password=${p}&action=get_vod_streams`)).then(r => r.json()).catch(() => []),
+        fetch(getApiUrl(`${h}/player_api.php?username=${u}&password=${p}&action=get_series_categories`)).then(r => r.json()).catch(() => []),
+        fetch(getApiUrl(`${h}/player_api.php?username=${u}&password=${p}&action=get_series`)).then(r => r.json()).catch(() => [])
       ]);
 
       dataStore.live = { categories: Array.isArray(liveCat) ? liveCat : [], streams: Array.isArray(liveStr) ? liveStr : [] };
@@ -788,7 +778,7 @@
       const h = serverConfig.host;
 
       try {
-        const res = await fetch(`${h}/player_api.php?username=${u}&password=${p}&action=get_series_info&series_id=${seriesId}`);
+        const res = await fetch(getApiUrl(`${h}/player_api.php?username=${u}&password=${p}&action=get_series_info&series_id=${seriesId}`));
         const data = await res.json();
         currentSeriesData = data;
 
@@ -1045,10 +1035,14 @@
         video.src = streamUrl;
         video.play().catch(err => console.log('Autoplay nativo bloccato:', err));
       } 
-      // 2. Altrimenti usa hls.js sui browser supportati (Chrome, Firefox, ecc.)
+      // 2. Altrimenti usa hls.js su Chrome, Firefox o altri browser desktop
       else if (isHls && Hls.isSupported()) {
+        let hlsSource = streamUrl;
+        if (streamUrl.startsWith('http://')) {
+          hlsSource = getApiUrl(streamUrl);
+        }
         hls = new Hls();
-        hls.loadSource(streamUrl);
+        hls.loadSource(hlsSource);
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           video.play().catch(err => console.log('Autoplay bloccato:', err));
@@ -1153,7 +1147,7 @@
       const h = serverConfig.host;
 
       try {
-        const res = await fetch(`${h}/player_api.php?username=${u}&password=${p}&action=get_short_epg&stream_id=${streamId}&limit=10`);
+        const res = await fetch(getApiUrl(`${h}/player_api.php?username=${u}&password=${p}&action=get_short_epg&stream_id=${streamId}&limit=10`));
         const data = await res.json();
 
         if (!data || !data.epg_listings || data.epg_listings.length === 0) {
